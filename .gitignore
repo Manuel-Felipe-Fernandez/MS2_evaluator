@@ -1,0 +1,5 @@
+*.vscode
+*__*
+__pychache__
+*mzml
+*mzxml
