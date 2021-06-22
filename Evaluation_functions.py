@@ -309,7 +309,7 @@ def write_results_onto_csv(path_in, file_name, spectrum_data_list):
     os.chdir(path_in)
     
     with open(file_name, "w") as f:
-        f.write("Name,Quality,Quality_number,Score,S/N,Strong_Coelution,Weak_Coelution,Strong_Reference_masses,Weak_Reference_masses,Strong_Crosstalk,Weak_Crosstalk\n")
+        f.write("Name;Quality;Quality_number;Score;S/N;Strong_Coelution;Weak_Coelution;Strong_Reference_masses;Weak_Reference_masses;Strong_Crosstalk;Weak_Crosstalk\n")
 
         for spectrum_index in range(len(spectrum_data_list)):
 
@@ -327,29 +327,29 @@ def write_results_onto_csv(path_in, file_name, spectrum_data_list):
 
             score = spectrum_data_list[spectrum_index][3]
 
-            f.write(name + ",")
+            f.write(name + ";")
 
             if quality == 3:
-                f.write("Good,")
+                f.write("Good;")
             elif quality == 2:
-                f.write("Regular,")
+                f.write("Regular;")
             else:
-                f.write("Bad,")
+                f.write("Bad;")
 
-            f.write(str(quality) + ",")
+            f.write(str(quality) + ";")
 
-            f.write(str(score) + ",")
+            f.write(str(score) + ";")
 
-            f.write(str(signal_noise_ratio) + ",")
+            f.write(str(signal_noise_ratio) + ";")
 
-            f.write(str(len(strong_coelution_peaks)) + ",")
-            f.write(str(len(weak_coelution_peaks)) + ",")
+            f.write(str(len(strong_coelution_peaks)) + ";")
+            f.write(str(len(weak_coelution_peaks)) + ";")
 
-            f.write(str(len(strong_reference_masses)) + ",")
-            f.write(str(len(weak_reference_masses)) + ",")
+            f.write(str(len(strong_reference_masses)) + ";")
+            f.write(str(len(weak_reference_masses)) + ";")
 
-            f.write(str(len(strong_crosstalk)) + ",")
-            f.write(str(len(weak_crosstalk)) + ",\n")
+            f.write(str(len(strong_crosstalk)) + ";")
+            f.write(str(len(weak_crosstalk)) + ";\n")
 
 
 
@@ -404,13 +404,13 @@ def read_user_mass_references_csv(path_in, name):
 
     with open(name) as file_csv:
 
-        file_reader = csv.reader(file_csv, delimiter = ",")
+        file_reader = csv.reader(file_csv, delimiter = ";")
 
         for row in file_reader:
 
             for column in row:
 
-                mz = float(column)
+                mz = float(column.replace(",", "."))
                 user_mass_list_out.append(mz)
 
     return(user_mass_list_out)
@@ -425,7 +425,7 @@ def read_rt_mz_csv(path_in, name, is_delta_rt = False, is_delta_mz = True, rt_in
     or "name.mzML,rt,delta_rt,mz,delta_mz"
     
 
-    returns: for each rt_mz [name.mzML,rt,delta_rt,mz,delta_mz]
+    returns: for each rt_mz [name.mzML;rt;delta_rt;mz;delta_mz]
     """
     os.chdir(path_in)
     data_out = []
@@ -433,7 +433,7 @@ def read_rt_mz_csv(path_in, name, is_delta_rt = False, is_delta_mz = True, rt_in
 
     with open(name) as file_csv:
 
-        file_reader = csv.reader(file_csv, delimiter = ",")
+        file_reader = csv.reader(file_csv, delimiter = ";")
 
         for row in file_reader:
 
@@ -441,13 +441,13 @@ def read_rt_mz_csv(path_in, name, is_delta_rt = False, is_delta_mz = True, rt_in
             
             if is_delta_rt == True:
 
-                rt = float(row[1])
-                delta_rt = float(row[2])
+                rt = float(row[1].replace(",", "."))
+                delta_rt = float(row[2].replace(",", "."))
 
             else:
 
-                lower_rt = float(row[1])
-                upper_rt = float(row[2])
+                lower_rt = float(row[1].replace(",", "."))
+                upper_rt = float(row[2].replace(",", "."))
 
                 diference = upper_rt - lower_rt
                 delta_rt = diference / 2
@@ -464,13 +464,13 @@ def read_rt_mz_csv(path_in, name, is_delta_rt = False, is_delta_mz = True, rt_in
             
             if is_delta_mz == True:
 
-                mz = float(row[3])
-                delta_mz = float(row[4])
+                mz = float(row[3].replace(",", "."))
+                delta_mz = float(row[4].replace(",", "."))
             
             else:
 
-                lower_mz = float(row[3])
-                upper_mz = float(row[4])
+                lower_mz = float(row[3].replace(",", "."))
+                upper_mz = float(row[4].replace(",", "."))
 
                 diference = upper_mz - lower_mz
                 delta_mz = diference / 2

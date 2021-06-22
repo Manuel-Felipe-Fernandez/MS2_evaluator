@@ -17,7 +17,7 @@ def rt_to_window(w_retention_time, w_delta_rt, decimal_places = 2):
     return (lower_rt, upper_rt)
     
 # Run function
-def run(spectra_folder, rt_mz_name_path, reference_masses_scrolled, output_file_path,
+def run(spectra_folder, rt_mz_name_path, user_reference_masses_path, output_file_path,
         delta_mz = 0.01, delta_coelution = 1.3,
         lower_percentage_coelution = 10, lower_percentage_reference_masses = 10, lower_percentage_crosstalk = 10,
         medium_percentage_coelution = 40, medium_percentage_reference_masses = 40, medium_percentage_crosstalk = 40,
@@ -32,6 +32,9 @@ def run(spectra_folder, rt_mz_name_path, reference_masses_scrolled, output_file_
 
     rt_mz_name_dir, rt_mz_name_file_name  = os.path.split(rt_mz_name_path)
     print("rt_mz_name_file_name:", rt_mz_name_file_name, "rt_mz_name_dir:", rt_mz_name_dir)
+
+    user_reference_masses_dir, user_reference_masses_file_name = os.path.split(user_reference_masses_path)
+    print("user_reference_masses_file_name:", user_reference_masses_file_name, "user_reference_masses_dir:", user_reference_masses_dir)
 
     output_dir, output_file_name = os.path.split(output_file_path)
     print("output_file_name:", output_file_name, "output_dir:", output_dir)
@@ -51,12 +54,8 @@ def run(spectra_folder, rt_mz_name_path, reference_masses_scrolled, output_file_
         print("MZ:", spectrum_rt_mz_name_data[3], "Delta MZ:", spectrum_rt_mz_name_data[4])
         
 
-    # We get input from scrolled
-    reference_masses_from_scrolled = str.split(reference_masses_scrolled.get(1.0, tk.END), ";")
-
-    user_reference_masses_list = []
-    for user_reference_mass in reference_masses_from_scrolled:
-        user_reference_masses_list.append(float(user_reference_mass))
+    # We read user reference masses input
+    user_reference_masses_list =  ev.read_user_mass_references_csv(user_reference_masses_dir, user_reference_masses_file_name)
 
     print("_________________________________________________")
     print("User reference masses:")
@@ -244,6 +243,10 @@ def label_entry_button(tab, variable, label_text, default_value, start_row = 0, 
     variable_lbl.grid(column = start_column, row = start_row)
 
     ## Entry
+    variable_entry = tk.Entry(tab, width = 5)
+    variable_entry.insert(0, default_value)
+    variable_entry.grid(column = start_column + 1, row = start_row)
+
     # Click function
     def click_save():
         initial_variable = variable_entry.get()
@@ -251,26 +254,18 @@ def label_entry_button(tab, variable, label_text, default_value, start_row = 0, 
 
         if not is_pos_float(initial_variable):
 
-            variable_entry.delete(0, "end")
-            variable_entry.insert(0, variable.get())
             tk.messagebox.showinfo('Type Error', "The variable inserted is not a positive number")
-            return(True)
+            raise TypeError("The variable inserted is not a positive number, please insert a valid variable")
             
         
         else:
 
             variable.set(initial_variable)
             print("The variable", variable.get(), "is valid")
-            return(True)
     
-    # Define entry objects
-    variable_entry = tk.Entry(tab, width = 5, validate = 'focusout', validatecommand = click_save)
-    variable_entry.insert(0, default_value)
-    variable_entry.grid(column = start_column + 1, row = start_row)
-    
-    # # Button
-    # variable_button = tk.Button(tab, text = "Save", command = click_save)
-    # variable_button.grid(column = start_column + 2, row = start_row)
+    # Button
+    variable_button = tk.Button(tab, text = "Save", command = click_save)
+    variable_button.grid(column = start_column + 2, row = start_row)
 
     return(variable_entry)
 
@@ -331,30 +326,30 @@ def options_tab(main_tab_control):
         variable_entry_list.append(varaible_entry)
         start_row += 1
 
-    # ## Save all
-    # # Clicked function
-    # def clicked_save_all():
-    #     entry_index = 0
-    #     for variable_entry in variable_entry_list:
-    #         initial_variable = variable_entry.get()
-    #         initial_variable = initial_variable.replace('"', '')
+    ## Save all
+    # Clicked function
+    def clicked_save_all():
+        entry_index = 0
+        for variable_entry in variable_entry_list:
+            initial_variable = variable_entry.get()
+            initial_variable = initial_variable.replace('"', '')
 
-    #         if not is_pos_float(initial_variable):
+            if not is_pos_float(initial_variable):
 
-    #             tk.messagebox.showinfo('Type Error', "The variable inserted in", labels_list[entry_index] , "is not a positive number")
-    #             raise TypeError("The variable inserted in", labels_list[entry_index], "is not a positive number, please insert a valid variable")
+                tk.messagebox.showinfo('Type Error', "The variable inserted in", labels_list[entry_index] , "is not a positive number")
+                raise TypeError("The variable inserted in", labels_list[entry_index], "is not a positive number, please insert a valid variable")
                 
             
-    #         else:
+            else:
 
-    #             variables_list[entry_index].set(initial_variable)
-    #             print("The variable", variables_list[entry_index].get(), "is valid")
+                variables_list[entry_index].set(initial_variable)
+                print("The variable", variables_list[entry_index].get(), "is valid")
             
-    #         entry_index += 1
+            entry_index += 1
     
-    # # Button
-    # spectra_folder_button = tk.Button(options_tab, text = "Save All", command = clicked_save_all)
-    # spectra_folder_button.grid(column = 4, row = len(labels_list))
+    # Button
+    spectra_folder_button = tk.Button(options_tab, text = "Save All", command = clicked_save_all)
+    spectra_folder_button.grid(column = 4, row = len(labels_list))
 
     
     return(variables_list)
@@ -388,9 +383,6 @@ def results_window(spectrum_data_list):
     rt_lbl = tk.Label(results_window, text = "Retention time")
     rt_lbl.grid(column = column_start + 4, row = 0)
 
-    mz_lbl = tk.Label(results_window, text = "M/Z:")
-    mz_lbl.grid(column = column_start + 5, row = 0)
-
     # Results Label function
     def row_results_lbl(spectrum_results):
 
@@ -411,7 +403,6 @@ def results_window(spectrum_data_list):
 
         w_retention_time = spectrum_results[4]
         w_delta_rt = spectrum_results[5]
-        w_lower_rt, w_upper_rt = rt_to_window(w_retention_time, w_delta_rt)
 
         w_mz = spectrum_results[6]
         w_delta_mz = spectrum_results[7]
@@ -430,14 +421,9 @@ def results_window(spectrum_data_list):
 
         result_file_name_lbl = tk.Label(results_window, text = name)
 
-        rt_mean_txt = str(round(w_retention_time/60, 2))
-        rt_w_txt = "(" + str(round(w_lower_rt/60, 2)) + "-" + str(round(w_upper_rt/60, 2)) + ")"
-        rt_txt = rt_mean_txt + " " + rt_w_txt
-        result_rt_lbl = tk.Label(results_window, text = rt_txt)
+        result_rt_lbl = tk.Label(results_window, text = str(round(w_retention_time/60, 2)))
 
-        result_mz_lbl = tk.Label(results_window, text = str(round(w_mz, 3)))
-
-        spectrum_labels = [result_score_lbl, result_quality_lbl, result_file_name_lbl, result_rt_lbl, result_mz_lbl]
+        spectrum_labels = [result_score_lbl, result_quality_lbl, result_file_name_lbl, result_rt_lbl]
         return(spectrum_labels)
     
     # Spectrum labels list
@@ -529,84 +515,72 @@ def single_result_window(spectrum_data_list, number_button):
     single_result_window.geometry("800x700")
     single_result_window.title(experiment_name)
     
-    row_start = 0
-    column_start = 0
-
     ## Name label
     name_title = "Name:"
     name_title_lbl = tk.Label(single_result_window, text = name_title)
-    name_title_lbl.grid(row = row_start, column = column_start)
+    name_title_lbl.grid(row = 0, column = 0)
 
     name_txt = experiment_name
     name_lbl = tk.Label(single_result_window, text = name_txt)
-    name_lbl.grid(row = row_start, column = column_start + 1)
+    name_lbl.grid(row = 0, column = 1)
 
     ## Retention time label
     rt_title = "Retention time:"
     rt_title_lbl = tk.Label(single_result_window, text = rt_title)
-    rt_title_lbl.grid(row = row_start + 1, column = column_start)
+    rt_title_lbl.grid(row = 1, column = 0)
 
     rt_mean_txt = str(round(w_retention_time/60, 2))
     rt_w_txt = "(" + str(round(w_lower_rt/60, 2)) + "-" + str(round(w_upper_rt/60, 2)) + ")"
     rt_txt = rt_mean_txt + " " + rt_w_txt
     rt_lbl = tk.Label(single_result_window, text = rt_txt)
-    rt_lbl.grid(row = row_start + 1, column = column_start + 1)
-
-    ## M/Z label
-    mz_title = "M/Z:"
-    mz_title_lbl = tk.Label(single_result_window, text = mz_title)
-    mz_title_lbl.grid(row = row_start + 2, column = column_start)
-
-    mz_txt = str(round(w_mz, 3))
-    mz_lbl = tk.Label(single_result_window, text = mz_txt)
-    mz_lbl.grid(row = row_start + 2, column = column_start + 1)
+    rt_lbl.grid(row = 1, column = 1)
 
     ## Quality label
     quality_title = "Quality:"
     quality_title_lbl = tk.Label(single_result_window, text = quality_title)
-    quality_title_lbl.grid(row = row_start + 3, column = column_start)
+    quality_title_lbl.grid(row = 2, column = 0)
 
     quality_txt = quality_str
     quality_lbl = tk.Label(single_result_window, text = quality_txt)
-    quality_lbl.grid(row = row_start + 3, column = column_start + 1)
+    quality_lbl.grid(row = 2, column = 1)
 
     ## Score label
     score_title = "Score:"
     score_title_lbl = tk.Label(single_result_window, text = score_title)
-    score_title_lbl.grid(row = row_start + 4, column = column_start)
+    score_title_lbl.grid(row = 3, column = 0)
 
     score_txt = str(round(score, 2))
     score_lbl = tk.Label(single_result_window, text = score_txt)
-    score_lbl.grid(row = row_start + 4, column = column_start + 1)
+    score_lbl.grid(row = 3, column = 1)
 
     ## Maximum peak label
     max_peak_title = "Maximum intensity peak:"
     max_peak_title_lbl = tk.Label(single_result_window, text = max_peak_title)
-    max_peak_title_lbl.grid(row = row_start + 5, column = column_start)
+    max_peak_title_lbl.grid(row = 4, column = 0)
 
     max_peak_mz = max_peak.get_mz()
     max_peak_i = max_peak.get_intensity()
     max_peak_txt = "MZ: " + str(round(max_peak_mz, 3)) + "  I: " + str(round(max_peak_i, 2))
     max_peak_lbl = tk.Label(single_result_window, text = max_peak_txt)
-    max_peak_lbl.grid(row = row_start + 5, column = column_start + 1)
+    max_peak_lbl.grid(row = 4, column = 1)
 
     ## Noise label
     grass_level_title = "Noise/grass intensity:"
     grass_level_title_lbl = tk.Label(single_result_window, text = grass_level_title)
-    grass_level_title_lbl.grid(row = row_start + 6, column = column_start)
+    grass_level_title_lbl.grid(row = 5, column = 0)
 
     grass_level_txt = str(round(grass_level, 2))
     grass_level_lbl = tk.Label(single_result_window, text = grass_level_txt)
-    grass_level_lbl.grid(row = row_start + 6, column = column_start + 1)
+    grass_level_lbl.grid(row = 5, column = 1)
 
     ## Signal to noise ratio label
     signal_noise_ratio_title = "Signal to noise ratio:"
     signal_noise_ratio_title_lbl = tk.Label(single_result_window, text = signal_noise_ratio_title)
-    signal_noise_ratio_title_lbl.grid(row = row_start + 7, column = column_start)
+    signal_noise_ratio_title_lbl.grid(row = 6, column = 0)
 
     signal_noise_ratio_txt = str(round(signal_noise_ratio, 2))
     signal_noise_ratio_lbl = tk.Label(single_result_window, text = signal_noise_ratio_txt)
-    signal_noise_ratio_lbl.grid(row = row_start + 7, column = column_start + 1)
+    signal_noise_ratio_lbl.grid(row = 6, column = 1)
 
     ## Peaks labels
     def label_multiple_peaks(title_label_txt, peaks, row_start, column_start = 0, digits_mz = 3, digits_intensity = 0):
@@ -628,7 +602,7 @@ def single_result_window(spectrum_data_list, number_button):
 
             number_peak += 1
 
-    row_peaks_start = 8
+    row_peaks_start = 7
 
     # Strong coelution label
     if len(strong_coelution_peaks) > 0:
@@ -877,32 +851,7 @@ def main():
             
         
         else:
-            # We divide path
-            user_reference_masses_dir, user_reference_masses_file_name = os.path.split(initial_reference_masses)
-            print("user_reference_masses_file_name:", user_reference_masses_file_name, "user_reference_masses_dir:", user_reference_masses_dir)
 
-            # Read info from file into a list
-            user_reference_masses_list =  ev.read_user_mass_references_csv(user_reference_masses_dir, user_reference_masses_file_name)
-            reference_masses_browse_scrolled.delete(1.0, tk.END)
-
-            user_reference_mass_num = 1
-            for user_reference_mass in user_reference_masses_list:
-                
-                if user_reference_mass_num != len(user_reference_masses_list):
-                    user_reference_mass_txt = str(user_reference_mass) + ";"
-                else:
-                    user_reference_mass_txt = str(user_reference_mass)
-
-                reference_masses_browse_scrolled.insert(tk.INSERT, user_reference_mass_txt)
-                user_reference_mass_num += 1
-            
-            reference_masses_from_scrolled = str.split(reference_masses_browse_scrolled.get(1.0, tk.END), ";")
-            print("")
-            print("Inserted user reference masses:")
-            for reference_mass in reference_masses_from_scrolled[:-1]:
-                print(reference_mass, end = ",")
-            print("")
-        
             reference_masses_file.set(initial_reference_masses)
             print("The path", reference_masses_file.get(), "is valid")
     
@@ -917,36 +866,7 @@ def main():
         reference_masses_file.set(result)
         reference_masses_entry.delete(0,"end")
         reference_masses_entry.insert(0, result)
-
-        if result != "":
-            print("Path browsed:", reference_masses_file.get())
-
-            # We divide path
-            user_reference_masses_dir, user_reference_masses_file_name = os.path.split(result)
-            print("user_reference_masses_file_name:", user_reference_masses_file_name, "user_reference_masses_dir:", user_reference_masses_dir)
-
-            # Read info from file into a list
-            user_reference_masses_list =  ev.read_user_mass_references_csv(user_reference_masses_dir, user_reference_masses_file_name)
-            reference_masses_browse_scrolled.delete(1.0, tk.END)
-
-            user_reference_mass_num = 1
-            for user_reference_mass in user_reference_masses_list:
-                
-                if user_reference_mass_num != len(user_reference_masses_list):
-                    user_reference_mass_txt = str(user_reference_mass) + ";"
-                else:
-                    user_reference_mass_txt = str(user_reference_mass)
-                    
-                reference_masses_browse_scrolled.insert(tk.INSERT, user_reference_mass_txt)
-                user_reference_mass_num += 1
-            
-            print(reference_masses_browse_scrolled.get(1.0, tk.END))
-            reference_masses_from_scrolled = str.split(reference_masses_browse_scrolled.get(1.0, tk.END), ";")
-            print("")
-            print("Inserted user reference masses:")
-            for reference_mass in reference_masses_from_scrolled[:-1]:
-                print(reference_mass, end = ",")
-            print("")
+        print("Path browsed:", reference_masses_file.get())
     
     # Button
     reference_masses_browse_button = tk.Button(main_tab, text = "Browse", command = click_reference_masses_browse)
@@ -1000,7 +920,7 @@ def main():
         print("")
 
         # Execute evaluation
-        spectrum_data_list = run(spectra_folder.get(), input_file.get(), reference_masses_browse_scrolled, output_file.get(), float(delta_mz.get()), float(delta_coelution.get()),
+        spectrum_data_list = run(spectra_folder.get(), input_file.get(), reference_masses_file.get(), output_file.get(), float(delta_mz.get()), float(delta_coelution.get()),
                                 float(lower_percentage_coelution.get()), float(lower_percentage_reference_masses.get()), float(lower_percentage_crosstalk.get()),
                                 float(medium_percentage_coelution.get()), float(medium_percentage_reference_masses.get()), float(medium_percentage_crosstalk.get()),
                                 float(upper_percentage_coelution.get()), float(upper_percentage_reference_masses.get()), float(upper_percentage_crosstalk.get()),
